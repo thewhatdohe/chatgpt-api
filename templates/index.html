@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adam Chat Bot Ultra</title>
+<style>
+/* ============================== tokens ============================== */
+:root{
+  --bg:#0f0f11; --surface:#161619; --raised:#1e1e23; --hover:#26262c;
+  --line:rgba(255,255,255,.07); --line-strong:rgba(255,255,255,.12);
+  --text:#ececef; --text-2:#a2a2ab; --text-3:#6e6e77;
+  --accent:#e0785a; --accent-ink:#1a0f0a; --accent-wash:rgba(224,120,90,.13);
+  --code-bg:#121216; --danger:#f0736b;
+  --syn-key:#a8b6f8; --syn-str:#8fce9f; --syn-num:#e0b354; --syn-com:#6e6e77;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 28px rgba(0,0,0,.35);
+  --r-sm:8px; --r-md:12px; --r-lg:18px;
+}
+html[data-theme="light"]{
+  --bg:#faf9f7; --surface:#f1efeb; --raised:#ffffff; --hover:#e7e4de;
+  --line:rgba(0,0,0,.08); --line-strong:rgba(0,0,0,.14);
+  --text:#1b1a18; --text-2:#67645e; --text-3:#96938c;
+  --accent:#bf5c3c; --accent-ink:#fff; --accent-wash:rgba(191,92,60,.10);
+  --code-bg:#f4f2ee; --danger:#c2412f;
+  --syn-key:#6d3fd4; --syn-str:#137a3a; --syn-num:#9a5b00; --syn-com:#96938c;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box}
+::selection{background:var(--accent-wash);color:var(--text)}
+
+html,body{height:100%}
+body{
+  margin:0;display:flex;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,system-ui,sans-serif;
+  font-size:15.5px;line-height:1.65;-webkit-font-smoothing:antialiased;
+}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+
+/* thin scrollbars that stay out of the way */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-thumb{background:transparent;border-radius:99px;border:3px solid transparent;background-clip:content-box}
+*:hover::-webkit-scrollbar-thumb{background:var(--line-strong);background-clip:content-box}
+
+/* ============================== sidebar ============================== */
+#sidebar{
+  width:252px;flex:none;background:var(--surface);display:flex;flex-direction:column;
+  transition:margin-left .22s cubic-bezier(.4,0,.2,1);
+}
+#sidebar.hidden{margin-left:-252px}
+.brand{display:flex;align-items:center;gap:9px;padding:18px 18px 12px;font-size:14px;
+  font-weight:600;letter-spacing:-.01em}
+.dot{width:8px;height:8px;border-radius:99px;background:var(--accent);flex:none;
+  box-shadow:0 0 0 3px var(--accent-wash)}
+.side-pad{padding:0 10px 10px}
+#newChat{
+  width:100%;padding:9px 12px;border-radius:var(--r-md);background:var(--raised);
+  color:var(--text);font-size:13.5px;font-weight:500;text-align:left;
+  display:flex;align-items:center;gap:8px;transition:background .13s;
+}
+#newChat:hover{background:var(--hover)}
+#newChat span.plus{color:var(--text-3);font-size:15px;line-height:1}
+.side-label{padding:12px 20px 6px;font-size:11px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-3)}
+#convList{flex:1;overflow-y:auto;padding:0 10px}
+.conv{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r-sm);
+  cursor:pointer;font-size:13.5px;color:var(--text-2);white-space:nowrap;transition:background .12s;
+}
+.conv:hover{background:var(--hover);color:var(--text)}
+.conv.active{background:var(--accent-wash);color:var(--text);font-weight:500}
+.conv .title{flex:1;overflow:hidden;text-overflow:ellipsis}
+.conv .x{opacity:0;color:var(--text-3);font-size:16px;line-height:1;padding:0 2px;transition:color .12s}
+.conv:hover .x{opacity:1}
+.conv .x:hover{color:var(--danger)}
+.side-foot{padding:10px;display:flex;gap:6px}
+.side-foot button{flex:1;padding:7px;border-radius:var(--r-sm);color:var(--text-3);
+  font-size:12.5px;transition:background .12s,color .12s}
+.side-foot button:hover{background:var(--hover);color:var(--text)}
+
+/* ============================== main ============================== */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+header{
+  height:54px;flex:none;display:flex;align-items:center;gap:10px;padding:0 18px;
+  border-bottom:1px solid var(--line);background:var(--bg);z-index:5;
+}
+.ghost{padding:6px 10px;border-radius:var(--r-sm);color:var(--text-2);font-size:13px;
+  transition:background .12s,color .12s}
+.ghost:hover{background:var(--hover);color:var(--text)}
+.hamburger{font-size:15px;line-height:1;color:var(--text-3)}
+select#modelSelect{
+  appearance:none;background:transparent;border:0;color:var(--text);font-size:13.5px;
+  font-weight:500;padding:6px 26px 6px 10px;border-radius:var(--r-sm);cursor:pointer;max-width:230px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--text-3) 50%),
+                   linear-gradient(135deg,var(--text-3) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 52%, calc(100% - 9px) 52%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+select#modelSelect:hover{background-color:var(--hover)}
+select#modelSelect option{background:var(--raised);color:var(--text)}
+header .spacer{flex:1}
+#status{font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+
+/* settings drawer */
+#settings{max-height:0;overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1);
+  border-bottom:1px solid transparent;flex:none}
+#settings.open{max-height:260px;border-bottom-color:var(--line)}
+.set-inner{display:flex;gap:26px;flex-wrap:wrap;padding:18px 22px;align-items:flex-start}
+.set-inner label{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--text-3);margin-bottom:7px}
+#sysPrompt{
+  width:min(520px,55vw);min-height:70px;resize:vertical;background:var(--raised);
+  border:1px solid var(--line);border-radius:var(--r-md);padding:10px 12px;font-size:13.5px;
+  line-height:1.55;outline:0;transition:border-color .13s;
+}
+#sysPrompt:focus{border-color:var(--accent)}
+.temp-row{display:flex;align-items:center;gap:12px}
+#tempVal{font-variant-numeric:tabular-nums;font-size:13px;color:var(--text-2);min-width:34px}
+input[type=range]{appearance:none;width:140px;height:4px;border-radius:99px;background:var(--line-strong)}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:15px;height:15px;border-radius:99px;
+  background:var(--accent);cursor:pointer;border:3px solid var(--bg);box-shadow:0 0 0 1px var(--accent)}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:99px;background:var(--accent);
+  cursor:pointer;border:3px solid var(--bg);box-shadow:0 0 0 1px var(--accent)}
+
+/* ============================== messages ============================== */
+#chat{flex:1;overflow-y:auto;overflow-x:hidden}
+.wrap{max-width:46rem;margin:0 auto;padding:30px 26px 20px}
+
+.msg{margin-bottom:26px;animation:rise .22s cubic-bezier(.2,.8,.3,1)}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* user: compact bubble, right aligned */
+.msg.user{display:flex;justify-content:flex-end}
+.msg.user .body{
+  background:var(--raised);border-radius:var(--r-lg) var(--r-lg) 5px var(--r-lg);
+  padding:11px 16px;max-width:82%;white-space:pre-wrap;word-wrap:break-word;
+  box-shadow:var(--shadow);
+}
+/* assistant: plain flowing text, full measure */
+.msg.assistant .body{max-width:100%}
+.msg.error .body{border-left:2px solid var(--danger);padding:2px 0 2px 14px;color:var(--danger);font-size:14px}
+
+.body>*:first-child{margin-top:0}
+.body>*:last-child{margin-bottom:0}
+.body p{margin:0 0 13px}
+.body h1,.body h2,.body h3{margin:22px 0 10px;line-height:1.3;letter-spacing:-.015em;font-weight:600}
+.body h1{font-size:1.3em}.body h2{font-size:1.15em}.body h3{font-size:1.02em}
+.body ul,.body ol{margin:0 0 13px;padding-left:20px}
+.body li{margin:5px 0}
+.body li::marker{color:var(--text-3)}
+.body blockquote{margin:0 0 13px;padding:1px 0 1px 15px;border-left:2px solid var(--line-strong);color:var(--text-2)}
+.body a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-wash)}
+.body a:hover{border-bottom-color:var(--accent)}
+.body hr{border:0;border-top:1px solid var(--line);margin:20px 0}
+.body strong{font-weight:600}
+.body code{
+  font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  font-size:.855em;background:var(--code-bg);padding:2px 5px;border-radius:5px;color:var(--text);
+}
+.body table{border-collapse:collapse;margin:0 0 14px;display:block;overflow-x:auto;max-width:100%;font-size:.93em}
+.body th,.body td{padding:8px 13px;text-align:left;border-bottom:1px solid var(--line)}
+.body th{font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3)}
+
+/* code blocks */
+.codeblock{margin:0 0 15px;border-radius:var(--r-md);overflow:hidden;background:var(--code-bg)}
+.cb-head{display:flex;align-items:center;justify-content:space-between;padding:7px 12px 5px}
+.cb-lang{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.copy{font-size:11px;font-weight:500;color:var(--text-3);padding:3px 8px;border-radius:6px;transition:background .12s,color .12s}
+.copy:hover{background:var(--hover);color:var(--text)}
+.codeblock pre{margin:0;padding:4px 14px 14px;overflow-x:auto}
+.codeblock code{background:none;padding:0;font-size:13px;line-height:1.62;display:block}
+.tok-key{color:var(--syn-key)}.tok-str{color:var(--syn-str)}
+.tok-num{color:var(--syn-num)}.tok-com{color:var(--syn-com);font-style:italic}
+
+/* hover actions */
+.actions{display:flex;gap:2px;margin-top:8px;opacity:0;transition:opacity .15s}
+.msg.user .actions{justify-content:flex-end}
+.msg:hover .actions,.actions:focus-within{opacity:1}
+.actions button{font-size:12px;color:var(--text-3);padding:3px 8px;border-radius:6px;transition:background .12s,color .12s}
+.actions button:hover{background:var(--hover);color:var(--text)}
+
+.cursor{display:inline-block;width:8px;height:16px;border-radius:2px;background:var(--accent);
+  vertical-align:-3px;margin-left:2px;animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* empty state */
+#empty{padding-top:16vh;text-align:center}
+#empty .mark{font-size:26px;font-weight:600;letter-spacing:-.03em;margin-bottom:6px}
+#empty .sub{color:var(--text-3);font-size:14px;margin-bottom:26px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:30rem;margin:0 auto}
+.chip{padding:8px 14px;border-radius:99px;background:var(--surface);color:var(--text-2);
+  font-size:13px;transition:background .13s,color .13s}
+.chip:hover{background:var(--hover);color:var(--text)}
+
+/* scroll-to-bottom */
+#toBottom{
+  position:absolute;left:50%;transform:translateX(-50%) scale(.9);bottom:118px;
+  width:32px;height:32px;border-radius:99px;background:var(--raised);color:var(--text-2);
+  box-shadow:var(--shadow);display:grid;place-items:center;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:4;
+}
+#toBottom.show{opacity:1;pointer-events:auto;transform:translateX(-50%) scale(1)}
+#toBottom:hover{color:var(--text)}
+
+/* ============================== composer ============================== */
+#composer{flex:none;padding:0 26px 20px;background:linear-gradient(to top,var(--bg) 62%,transparent)}
+.cbox{
+  max-width:46rem;margin:0 auto;display:flex;gap:10px;align-items:flex-end;
+  background:var(--raised);border:1px solid var(--line);border-radius:22px;
+  padding:9px 9px 9px 18px;box-shadow:var(--shadow);transition:border-color .15s;
+}
+.cbox:focus-within{border-color:var(--line-strong)}
+#input{
+  flex:1;background:none;border:0;outline:0;resize:none;max-height:220px;
+  padding:8px 0;line-height:1.55;
+}
+#input::placeholder{color:var(--text-3)}
+#send{
+  width:34px;height:34px;flex:none;border-radius:99px;background:var(--accent);color:var(--accent-ink);
+  display:grid;place-items:center;transition:transform .12s,opacity .15s,background .15s;
+}
+#send:hover{transform:scale(1.06)}
+#send:active{transform:scale(.95)}
+#send.idle{opacity:.35;pointer-events:none}
+#send.stop{background:var(--text);color:var(--bg)}
+#send svg{width:15px;height:15px;display:block}
+.hint{max-width:46rem;margin:9px auto 0;font-size:11.5px;color:var(--text-3);text-align:center}
+kbd{font-family:inherit;font-size:10.5px;padding:1px 5px;border-radius:4px;background:var(--surface);color:var(--text-2)}
+
+/* attachments strip in the composer */
+#attachments{max-width:46rem;margin:0 auto 8px;display:flex;flex-wrap:wrap;gap:8px}
+#attachments:empty{display:none}
+.thumb{position:relative;width:60px;height:60px;border-radius:10px;overflow:hidden;
+  border:1px solid var(--line);background:var(--surface);flex:none}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .rm{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:99px;
+  background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:18px;text-align:center;
+  cursor:pointer;opacity:0;transition:opacity .12s}
+.thumb:hover .rm{opacity:1}
+.thumb.busy{display:grid;place-items:center}
+.thumb.busy::after{content:"";width:16px;height:16px;border-radius:99px;
+  border:2px solid var(--line-strong);border-top-color:var(--accent);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* images inside a sent user bubble */
+.msg-imgs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.msg-imgs img{max-width:220px;max-height:220px;border-radius:10px;border:1px solid var(--line);display:block}
+.msg.user .body:has(.msg-imgs):not(:has(.txt)){background:none;padding:0}
+
+/* ===================== UX / polish pass ===================== */
+
+/* keyboard accessibility: a clear focus ring, but only for keyboard users */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+button:focus:not(:focus-visible){outline:none}
+
+/* header gains a hairline + faint depth so it reads as a fixed bar */
+header{box-shadow:0 1px 0 var(--line)}
+.icon-btn, .ghost{transition:background .12s,color .12s,transform .08s}
+.ghost:active,.icon-btn:active{transform:scale(.94)}
+
+/* the model selector as a subtle pill instead of bare text */
+select#modelSelect{transition:background-color .12s,box-shadow .12s}
+select#modelSelect:focus-visible{outline:none;box-shadow:0 0 0 2px var(--accent)}
+
+/* typing indicator shown before the first token arrives */
+.typing{display:inline-flex;gap:4px;align-items:center;padding:4px 0}
+.typing i{width:7px;height:7px;border-radius:99px;background:var(--text-3);
+  animation:bounce 1.2s ease-in-out infinite}
+.typing i:nth-child(2){animation-delay:.16s}
+.typing i:nth-child(3){animation-delay:.32s}
+@keyframes bounce{0%,80%,100%{opacity:.3;transform:translateY(0)}
+  40%{opacity:1;transform:translateY(-3px)}}
+
+/* messages: a hair more breathing room + gentle hover on user bubbles */
+.msg.user .body{transition:box-shadow .15s}
+.msg.user:hover .body{box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.body pre.code, .codeblock{scrollbar-width:thin}
+
+/* composer: a soft focus glow that matches the accent */
+.cbox{transition:border-color .15s,box-shadow .15s}
+.cbox:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+
+/* conversations: active item gets an accent spine */
+.conv{position:relative}
+.conv.active::before{content:"";position:absolute;left:-2px;top:6px;bottom:6px;
+  width:3px;border-radius:99px;background:var(--accent)}
+
+/* honour users who prefer less motion */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+  .msg{animation:none}
+}
+
+/* ===================== mobile ===================== */
+#backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:15;
+  opacity:0;pointer-events:none;transition:opacity .2s}
+@media (max-width:760px){
+  #sidebar{position:absolute;z-index:20;height:100%;box-shadow:var(--shadow)}
+  #sidebar.hidden{margin-left:-260px}
+  #backdrop.show{opacity:1;pointer-events:auto}
+  .wrap{padding:20px 14px 14px}
+  #composer{padding:0 12px 12px}
+  .msg.user .body{max-width:88%}
+  header{padding:0 12px}
+  select#modelSelect{max-width:150px}
+  .hint{display:none}   /* reclaim vertical space on small screens */
+}
+@media (min-width:761px){ #backdrop{display:none} }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand"><span class="dot"></span>Adam Chat Bot Ultra</div>
+  <div class="side-pad">
+    <button id="newChat"><span class="plus">+</span>New chat</button>
+  </div>
+  <div class="side-label">Recent</div>
+  <div id="convList"></div>
+  <div class="side-foot">
+    <button id="themeBtn">Light</button>
+    <button id="clearAll">Clear all</button>
+  </div>
+</aside>
+<div id="backdrop"></div>
+
+<div id="main">
+  <header>
+    <button class="ghost hamburger" id="toggleSide" title="Toggle sidebar">&#9776;</button>
+    <select id="modelSelect"></select>
+    <button class="ghost" id="settingsBtn">Settings</button>
+    <div class="spacer"></div>
+    <div id="status"></div>
+  </header>
+
+  <div id="settings">
+    <div class="set-inner">
+      <div>
+        <label for="sysPrompt">System prompt</label>
+        <textarea id="sysPrompt" placeholder="You are a helpful assistant."></textarea>
+      </div>
+      <div>
+        <label for="temp">Temperature</label>
+        <div class="temp-row">
+          <input type="range" id="temp" min="0" max="2" step="0.05" value="0.7">
+          <span id="tempVal">0.70</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chat"><div class="wrap" id="messages"></div></div>
+
+  <button id="toBottom" title="Jump to latest">&#8595;</button>
+
+  <div id="composer">
+    <div id="attachments"></div>
+    <div class="cbox">
+      <textarea id="input" rows="1" placeholder="Message your model...  (paste an image with Ctrl+V)" autofocus></textarea>
+      <button id="send" class="idle" title="Send"></button>
+    </div>
+    <div class="hint"><kbd>Enter</kbd> send &nbsp;&middot;&nbsp; <kbd>Shift</kbd>+<kbd>Enter</kbd> newline &nbsp;&middot;&nbsp; <kbd>Ctrl</kbd>+<kbd>V</kbd> image &nbsp;&middot;&nbsp; <kbd>Esc</kbd> stop</div>
+  </div>
+</div>
+
+<script>
+/* ============================== state ============================== */
+const LS_CONVS = 'localchat.convs', LS_SET = 'localchat.settings';
+let convs = load(LS_CONVS, []);
+let settings = Object.assign(
+  {system:'You are a helpful assistant.', temp:0.7, model:'', theme:'dark', sidebar:true},
+  load(LS_SET, {}));
+let activeId = convs.length ? convs[0].id : null;
+let controller = null;
+let pendingImages = [];   // data URLs staged in the composer, not yet sent
+
+function load(k, fb){ try{ const v = JSON.parse(localStorage.getItem(k)); return v === null ? fb : v; }catch(e){ return fb; } }
+function save(){
+  try{
+    localStorage.setItem(LS_CONVS, JSON.stringify(convs));
+    localStorage.setItem(LS_SET, JSON.stringify(settings));
+  }catch(e){
+    // usually the ~5MB quota, blown by stored images
+    statusEl.textContent = 'History not saved (storage full)';
+    setTimeout(function(){ if(!controller) statusEl.textContent = ''; }, 4000);
+  }
+}
+function active(){ return convs.find(function(c){ return c.id === activeId; }); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+const $ = function(s){ return document.querySelector(s); };
+const messagesEl = $('#messages'), chatEl = $('#chat'), inputEl = $('#input'),
+      sendEl = $('#send'), statusEl = $('#status'), toBottomEl = $('#toBottom'),
+      attachEl = $('#attachments');
+
+const ICON_SEND = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"/></svg>';
+const ICON_STOP = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4.5" y="4.5" width="7" height="7" rx="1.5"/></svg>';
+
+/* ============================ syntax tint ============================ */
+const KEYWORDS = ('def class return if elif else for while in import from as with try except finally raise ' +
+  'lambda yield pass break continue global None True False and or not is async await ' +
+  'function const let var new typeof instanceof this null undefined true false export default extends ' +
+  'interface type public private static void int float double string bool struct enum fn impl match ' +
+  'echo local export unset sudo select case esac then fi do done').split(' ');
+const KEYSET = new Set(KEYWORDS);
+const HASH_LANGS = new Set(['python','py','sh','bash','shell','zsh','ruby','rb','yaml','yml','toml','ini','r','perl','']);
+
+function tint(code, lang){
+  const hash = HASH_LANGS.has((lang || '').toLowerCase());
+  // one pass over the raw source: comment | string | number | word | other
+  const re = new RegExp(
+    '(\\/\\*[\\s\\S]*?\\*\\/|\\/\\/[^\\n]*' + (hash ? '|#[^\\n]*' : '') + ')' +   // 1 comment
+    '|("""[\\s\\S]*?"""|\'\'\'[\\s\\S]*?\'\'\'|"(?:\\\\.|[^"\\\\\\n])*"|\'(?:\\\\.|[^\'\\\\\\n])*\'|`(?:\\\\.|[^`\\\\])*`)' + // 2 string
+    '|(\\b\\d[\\d_]*(?:\\.\\d+)?(?:[eE][+-]?\\d+)?\\b)' +                          // 3 number
+    '|([A-Za-z_$][\\w$]*)', 'g');                                                  // 4 word
+  let out = '', last = 0, m;
+  while((m = re.exec(code)) !== null){
+    out += esc(code.slice(last, m.index));
+    if(m[1])      out += '<span class="tok-com">' + esc(m[1]) + '</span>';
+    else if(m[2]) out += '<span class="tok-str">' + esc(m[2]) + '</span>';
+    else if(m[3]) out += '<span class="tok-num">' + esc(m[3]) + '</span>';
+    else if(m[4]) out += KEYSET.has(m[4]) ? '<span class="tok-key">' + esc(m[4]) + '</span>' : esc(m[4]);
+    last = m.index + m[0].length;
+  }
+  return out + esc(code.slice(last));
+}
+
+/* ============================== markdown ============================== */
+const ENT = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return ENT[c]; }); }
+function safeUrl(u){ return /^(https?:|mailto:|#|\/)/i.test(u.trim()) ? u.trim() : '#'; }
+
+function inline(s){
+  return s
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
+    .replace(/~~([^~]+)~~/g, '<del>$1</del>')
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function(m, t, u){
+      return '<a href="' + esc(safeUrl(u)) + '" target="_blank" rel="noopener">' + t + '</a>'; });
+}
+
+function renderMd(src){
+  const blocks = [], codes = [];
+  // 1. pull fenced code out first (an unterminated fence just means we are still streaming)
+  let t = String(src).replace(/```([\w+#-]*)\n?([\s\S]*?)(?:```|$)/g, function(m, lang, code){
+    blocks.push({lang: lang, code: code});
+    return '@@BLK' + (blocks.length - 1) + '@@';
+  });
+  t = esc(t);
+  // 2. inline code, so its contents skip the rest of the formatting passes
+  t = t.replace(/`([^`\n]+)`/g, function(m, c){ codes.push(c); return '@@INL' + (codes.length - 1) + '@@'; });
+
+  const lines = t.split('\n');
+  let out = '', list = null, para = [], quote = [];
+  function flushP(){ if(para.length){ out += '<p>' + inline(para.join('<br>')) + '</p>'; para = []; } }
+  function flushL(){ if(list){ out += '</' + list + '>'; list = null; } }
+  function flushQ(){ if(quote.length){ out += '<blockquote>' + inline(quote.join('<br>')) + '</blockquote>'; quote = []; } }
+  function flushAll(){ flushP(); flushL(); flushQ(); }
+
+  for(let i = 0; i < lines.length; i++){
+    const line = lines[i], tr = line.trim();
+    let m;
+
+    if((m = tr.match(/^@@BLK(\d+)@@$/))){
+      flushAll();
+      const b = blocks[+m[1]];
+      out += '<div class="codeblock"><div class="cb-head"><span class="cb-lang">' +
+             esc(b.lang || 'code') + '</span><button class="copy">Copy</button></div><pre><code>' +
+             tint(b.code.replace(/\n$/, ''), b.lang) + '</code></pre></div>';
+      continue;
+    }
+    if(!tr){ flushAll(); continue; }
+
+    // pipe table:  | a | b |  followed by  |---|---|
+    if(tr.charAt(0) === '|' && /^\|[\s:|-]+\|$/.test((lines[i+1] || '').trim())){
+      flushAll();
+      const cells = function(r){ return r.trim().replace(/^\||\|$/g, '').split('|')
+        .map(function(c){ return inline(c.trim()); }); };
+      out += '<table><thead><tr>' + cells(tr).map(function(c){ return '<th>' + c + '</th>'; }).join('') +
+             '</tr></thead><tbody>';
+      i += 2;
+      while(i < lines.length && lines[i].trim().charAt(0) === '|'){
+        out += '<tr>' + cells(lines[i]).map(function(c){ return '<td>' + c + '</td>'; }).join('') + '</tr>';
+        i++;
+      }
+      i--;
+      out += '</tbody></table>';
+      continue;
+    }
+    if((m = tr.match(/^(#{1,4})\s+(.*)$/))){
+      flushAll();
+      const n = Math.min(m[1].length, 3);
+      out += '<h' + n + '>' + inline(m[2]) + '</h' + n + '>';
+      continue;
+    }
+    if(/^([-*_])\1\1+$/.test(tr)){ flushAll(); out += '<hr>'; continue; }
+    if((m = tr.match(/^&gt;\s?(.*)$/))){ flushP(); flushL(); quote.push(m[1]); continue; }
+    if((m = tr.match(/^[-*+]\s+(.*)$/))){
+      flushP(); flushQ();
+      if(list !== 'ul'){ flushL(); out += '<ul>'; list = 'ul'; }
+      out += '<li>' + inline(m[1]) + '</li>';
+      continue;
+    }
+    if((m = tr.match(/^\d+[.)]\s+(.*)$/))){
+      flushP(); flushQ();
+      if(list !== 'ol'){ flushL(); out += '<ol>'; list = 'ol'; }
+      out += '<li>' + inline(m[1]) + '</li>';
+      continue;
+    }
+    flushL(); flushQ(); para.push(line);
+  }
+  flushAll();
+
+  return out.replace(/@@INL(\d+)@@/g, function(m, i){ return '<code>' + codes[+i] + '</code>'; });
+}
+
+/* ============================== rendering ============================== */
+function renderSidebar(){
+  const list = $('#convList');
+  list.innerHTML = '';
+  convs.forEach(function(c){
+    const el = document.createElement('div');
+    el.className = 'conv' + (c.id === activeId ? ' active' : '');
+    el.innerHTML = '<span class="title"></span><button class="x" title="Delete">&times;</button>';
+    el.querySelector('.title').textContent = c.title || 'New chat';
+    el.onclick = function(){
+      if(controller) controller.abort();
+      activeId = c.id; renderAll();
+      closeSidebarMobile();
+    };
+    el.querySelector('.x').onclick = function(e){
+      e.stopPropagation();
+      if(c.id === activeId && controller) controller.abort();
+      convs = convs.filter(function(x){ return x.id !== c.id; });
+      if(activeId === c.id) activeId = convs.length ? convs[0].id : null;
+      save(); renderAll();
+    };
+    list.appendChild(el);
+  });
+}
+
+function bubble(msg, idx){
+  const el = document.createElement('div');
+  el.className = 'msg ' + msg.role;
+  el.innerHTML = '<div class="body"></div>';
+  const body = el.querySelector('.body');
+
+  if(msg.role === 'error'){ body.textContent = msg.content; return el; }
+  if(msg.role === 'user'){
+    if(msg.content){
+      const txt = document.createElement('div');
+      txt.className = 'txt';
+      txt.textContent = msg.content;
+      body.appendChild(txt);
+    }
+    if(msg.images && msg.images.length){
+      const strip = document.createElement('div');
+      strip.className = 'msg-imgs';
+      msg.images.forEach(function(u){
+        const im = document.createElement('img');
+        im.src = u; im.alt = 'attached image';
+        strip.appendChild(im);
+      });
+      body.appendChild(strip);
+    }
+  }
+  else if(msg.streaming && !msg.content){
+    body.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  }
+  else { body.innerHTML = renderMd(msg.content) + (msg.streaming ? '<span class="cursor"></span>' : ''); }
+  if(msg.streaming) return el;
+
+  const acts = document.createElement('div');
+  acts.className = 'actions';
+
+  const copy = document.createElement('button');
+  copy.textContent = 'Copy';
+  copy.onclick = function(){
+    navigator.clipboard.writeText(msg.content);
+    copy.textContent = 'Copied';
+    setTimeout(function(){ copy.textContent = 'Copy'; }, 1200);
+  };
+  acts.appendChild(copy);
+
+  if(msg.role === 'user'){
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.onclick = function(){
+      inputEl.value = msg.content;
+      // restore its images to the composer so an edit does not silently drop them
+      pendingImages = (msg.images || []).map(function(u){ return {url: u}; });
+      renderAttachments();
+      active().messages.splice(idx);
+      save(); renderAll(); autoGrow(); refreshSend(); inputEl.focus();
+    };
+    acts.appendChild(edit);
+  }else{
+    const regen = document.createElement('button');
+    regen.textContent = 'Regenerate';
+    regen.onclick = function(){ active().messages.splice(idx); save(); renderAll(); run(); };
+    acts.appendChild(regen);
+  }
+  el.appendChild(acts);
+  return el;
+}
+
+const SUGGESTIONS = ['Explain this error message', 'Write a Python script that...', 'Summarize this text'];
+
+function renderChat(){
+  const c = active();
+  messagesEl.innerHTML = '';
+  if(!c || !c.messages.length){
+    const wrap = document.createElement('div');
+    wrap.id = 'empty';
+    wrap.innerHTML = '<div class="mark">Adam Chat Bot Ultra</div>' +
+      '<div class="sub">Adam Chat Bot ultra knows it all</div>' +
+      '<div class="chips"></div>';
+    const chips = wrap.querySelector('.chips');
+    SUGGESTIONS.forEach(function(s){
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = s;
+      b.onclick = function(){ inputEl.value = s; autoGrow(); inputEl.focus(); refreshSend(); };
+      chips.appendChild(b);
+    });
+    messagesEl.appendChild(wrap);
+    return;
+  }
+  c.messages.forEach(function(m, i){ messagesEl.appendChild(bubble(m, i)); });
+}
+
+function renderAll(){ renderSidebar(); renderChat(); scrollDown(true); }
+
+function scrollDown(force){
+  const near = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 150;
+  if(force || near) chatEl.scrollTop = chatEl.scrollHeight;
+}
+chatEl.addEventListener('scroll', function(){
+  const gap = chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight;
+  toBottomEl.classList.toggle('show', gap > 260);
+});
+toBottomEl.onclick = function(){ chatEl.scrollTo({top: chatEl.scrollHeight, behavior:'smooth'}); };
+
+// one delegated handler for every code-block Copy button
+messagesEl.addEventListener('click', function(e){
+  if(!e.target.classList.contains('copy')) return;
+  const block = e.target.closest('.codeblock');
+  navigator.clipboard.writeText(block.querySelector('code').textContent);
+  e.target.textContent = 'Copied';
+  setTimeout(function(){ e.target.textContent = 'Copy'; }, 1200);
+});
+
+/* ============================== streaming ============================== */
+async function run(){
+  const c = active();
+  if(!c || controller) return;
+
+  const payloadMsgs = [{role:'system', content: settings.system || 'You are a helpful assistant.'}]
+    .concat(c.messages
+      .filter(function(m){ return m.role === 'user' || m.role === 'assistant'; })
+      .map(function(m){ return {role:m.role, content: apiContent(m)}; }));
+
+  const assistant = {role:'assistant', content:'', streaming:true};
+  c.messages.push(assistant);
+  renderChat();
+  scrollDown(true);
+
+  const target = messagesEl.lastElementChild.querySelector('.body');
+  const started = performance.now();
+  let chars = 0, dirty = false, failed = false;
+
+  const timer = setInterval(function(){
+    if(dirty){
+      dirty = false;
+      target.innerHTML = renderMd(assistant.content) + '<span class="cursor"></span>';
+      scrollDown();
+    }
+    statusEl.textContent = ((performance.now() - started) / 1000).toFixed(1) + 's';
+  }, 60);
+
+  controller = new AbortController();
+  setBusy(true);
+
+  try{
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      signal: controller.signal,
+      body: JSON.stringify({model: settings.model, messages: payloadMsgs, temperature: settings.temp})
+    });
+    if(!res.ok) throw new Error('Proxy returned HTTP ' + res.status);
+
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    for(;;){
+      const r = await reader.read();
+      if(r.done) break;
+      buf += dec.decode(r.value, {stream:true});
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for(const part of parts){
+        const line = part.trim();
+        if(line.slice(0, 5) !== 'data:') continue;
+        const raw = line.slice(5).trim();
+        if(raw === '[DONE]') continue;
+        let ev;
+        try{ ev = JSON.parse(raw); }catch(e){ continue; }
+        if(ev.error) throw new Error(ev.error);
+        if(ev.delta){ assistant.content += ev.delta; chars += ev.delta.length; dirty = true; }
+      }
+    }
+  }catch(err){
+    if(err.name !== 'AbortError'){
+      failed = true;
+      c.messages.push({role:'error', content: err.message});
+    }
+  }finally{
+    clearInterval(timer);
+    controller = null;
+    delete assistant.streaming;
+
+    if(!assistant.content){
+      // drop the empty placeholder so an error or a stop leaves no blank bubble
+      const at = c.messages.indexOf(assistant);
+      if(at !== -1) c.messages.splice(at, 1);
+    }
+    if(!c.title || c.title === 'New chat'){
+      const first = c.messages.find(function(m){ return m.role === 'user'; });
+      if(first) c.title = first.content.slice(0, 40);
+    }
+    const secs = (performance.now() - started) / 1000;
+    statusEl.textContent = (failed || !chars) ? '' :
+      secs.toFixed(1) + 's  ' + Math.round(chars / Math.max(secs, 0.001)) + ' ch/s';
+    setBusy(false);
+    save();
+    renderAll();
+  }
+}
+
+function setBusy(b){
+  sendEl.classList.toggle('stop', b);
+  sendEl.classList.remove('idle');
+  sendEl.innerHTML = b ? ICON_STOP : ICON_SEND;
+  sendEl.title = b ? 'Stop' : 'Send';
+  if(!b) refreshSend();
+}
+function refreshSend(){
+  if(controller) return;
+  // sendable if there is text OR at least one finished attachment
+  const ready = pendingImages.some(function(p){ return p.url; });
+  sendEl.classList.toggle('idle', !inputEl.value.trim() && !ready);
+}
+
+/* ------------------------------ images ------------------------------ */
+// Turn a stored message into the content the API expects: a plain string,
+// or an array with the text plus one image_url part per attachment.
+function apiContent(m){
+  if(m.role === 'user' && m.images && m.images.length){
+    const parts = [];
+    if(m.content) parts.push({type:'text', text: m.content});
+    m.images.forEach(function(u){ parts.push({type:'image_url', image_url:{url: u}}); });
+    return parts;
+  }
+  return m.content;
+}
+
+// Downscale a pasted image so history fits localStorage and the vision
+// model is not handed a needlessly huge picture. Longest side capped;
+// PNG kept when small (crisp text), else re-encoded as JPEG.
+const MAX_SIDE = 1568, PNG_BUDGET = 900 * 1024;
+function downscale(file){
+  return new Promise(function(resolve, reject){
+    const img = new Image();
+    img.onload = function(){
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      let url = cv.toDataURL('image/png');
+      if(url.length > PNG_BUDGET) url = cv.toDataURL('image/jpeg', 0.85);
+      URL.revokeObjectURL(img.src);
+      resolve(url);
+    };
+    img.onerror = function(){ reject(new Error('bad image')); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function addImageFile(file){
+  const slot = {url: null};        // filled in when downscale finishes
+  pendingImages.push(slot);
+  renderAttachments();
+  downscale(file).then(function(url){
+    slot.url = url;
+    renderAttachments(); refreshSend();
+  }).catch(function(){
+    pendingImages = pendingImages.filter(function(p){ return p !== slot; });
+    renderAttachments();
+  });
+}
+
+function renderAttachments(){
+  attachEl.innerHTML = '';
+  pendingImages.forEach(function(p, i){
+    const t = document.createElement('div');
+    t.className = 'thumb' + (p.url ? '' : ' busy');
+    if(p.url){
+      t.innerHTML = '<img alt="attachment"><span class="rm" title="Remove">&times;</span>';
+      t.querySelector('img').src = p.url;
+      t.querySelector('.rm').onclick = function(){
+        pendingImages.splice(i, 1); renderAttachments(); refreshSend();
+      };
+    }
+    attachEl.appendChild(t);
+  });
+}
+
+function send(){
+  if(controller){ controller.abort(); return; }
+  const text = inputEl.value.trim();
+  const images = pendingImages.filter(function(p){ return p.url; }).map(function(p){ return p.url; });
+  if(!text && !images.length) return;
+  if(!active()){
+    convs.unshift({id: uid(), title:'New chat', messages: []});
+    activeId = convs[0].id;
+  }
+  const msg = {role:'user', content: text};
+  if(images.length) msg.images = images;
+  active().messages.push(msg);
+  inputEl.value = '';
+  pendingImages = []; renderAttachments();
+  autoGrow(); refreshSend(); save(); renderAll();
+  run();
+}
+
+/* ============================== wiring ============================== */
+function autoGrow(){
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 220) + 'px';
+}
+inputEl.addEventListener('input', function(){ autoGrow(); refreshSend(); });
+inputEl.addEventListener('keydown', function(e){
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
+});
+// paste an image straight into the composer
+inputEl.addEventListener('paste', function(e){
+  const items = (e.clipboardData || {}).items || [];
+  let grabbed = false;
+  for(let i = 0; i < items.length; i++){
+    if(items[i].type && items[i].type.indexOf('image/') === 0){
+      const file = items[i].getAsFile();
+      if(file){ addImageFile(file); grabbed = true; }
+    }
+  }
+  if(grabbed) e.preventDefault();   // don't also dump the binary as text
+});
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape' && controller) controller.abort();
+});
+sendEl.onclick = send;
+
+$('#newChat').onclick = function(){
+  if(controller) controller.abort();
+  convs.unshift({id: uid(), title:'New chat', messages: []});
+  activeId = convs[0].id;
+  save(); renderAll(); inputEl.focus();
+};
+$('#clearAll').onclick = function(){
+  if(!confirm('Delete every conversation?')) return;
+  if(controller) controller.abort();
+  convs = []; activeId = null;
+  save(); renderAll();
+};
+// width 0 happens while the pane is hidden/laying out; treat it as desktop
+const isMobile = function(){ const w = window.innerWidth; return w > 0 && w <= 760; };
+function sidebarOpen(){ return !$('#sidebar').classList.contains('hidden'); }
+function syncBackdrop(){
+  $('#backdrop').classList.toggle('show', isMobile() && sidebarOpen());
+}
+// desktop follows the saved preference; mobile always starts closed and never
+// writes the collapse back to settings (so it can't stick on desktop)
+function applySidebar(){
+  $('#sidebar').classList.toggle('hidden', isMobile() ? true : !settings.sidebar);
+  syncBackdrop();
+}
+function closeSidebarMobile(){
+  if(isMobile()){ $('#sidebar').classList.add('hidden'); syncBackdrop(); }
+}
+$('#toggleSide').onclick = function(){
+  const nowHidden = $('#sidebar').classList.toggle('hidden');
+  if(!isMobile()){ settings.sidebar = !nowHidden; save(); }  // persist on desktop only
+  syncBackdrop();
+};
+$('#backdrop').onclick = function(){ $('#sidebar').classList.add('hidden'); syncBackdrop(); };
+window.addEventListener('resize', applySidebar);
+$('#settingsBtn').onclick = function(){ $('#settings').classList.toggle('open'); };
+$('#themeBtn').onclick = function(){
+  settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(); save();
+};
+function applyTheme(){
+  document.documentElement.dataset.theme = settings.theme;
+  $('#themeBtn').textContent = settings.theme === 'dark' ? 'Light' : 'Dark';
+}
+$('#sysPrompt').oninput = function(e){ settings.system = e.target.value; save(); };
+$('#temp').oninput = function(e){
+  settings.temp = parseFloat(e.target.value);
+  $('#tempVal').textContent = settings.temp.toFixed(2);
+  save();
+};
+$('#modelSelect').onchange = function(e){ settings.model = e.target.value; save(); };
+
+async function loadModels(){
+  const sel = $('#modelSelect');
+  try{
+    const data = await (await fetch('/api/models')).json();
+    const models = data.models || [];
+    sel.innerHTML = '';
+    models.forEach(function(m){
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      sel.appendChild(o);
+    });
+    if(!settings.model || models.indexOf(settings.model) === -1) settings.model = data.default || models[0] || '';
+    sel.value = settings.model;
+    save();
+  }catch(e){
+    sel.innerHTML = '<option>unavailable</option>';
+  }
+}
+
+/* boot */
+applyTheme();
+applySidebar();
+$('#sysPrompt').value = settings.system;
+$('#temp').value = settings.temp;
+$('#tempVal').textContent = Number(settings.temp).toFixed(2);
+sendEl.innerHTML = ICON_SEND;
+renderAll();
+loadModels();
+refreshSend();
+</script>
+</body>
+</html>
