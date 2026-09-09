@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Adam Chat Bot Ultra</title>
+<title>chatgpt-webui</title>
 <style>
 /* ============================== tokens ============================== */
 :root{
@@ -310,7 +310,7 @@ select#modelSelect:focus-visible{outline:none;box-shadow:0 0 0 2px var(--accent)
 <body>
 
 <aside id="sidebar">
-  <div class="brand"><span class="dot"></span>Adam Chat Bot Ultra</div>
+  <div class="brand"><span class="dot"></span>chatgpt-webui</div>
   <div class="side-pad">
     <button id="newChat"><span class="plus">+</span>New chat</button>
   </div>
@@ -611,8 +611,8 @@ function renderChat(){
   if(!c || !c.messages.length){
     const wrap = document.createElement('div');
     wrap.id = 'empty';
-    wrap.innerHTML = '<div class="mark">Adam Chat Bot Ultra</div>' +
-      '<div class="sub">Adam Chat Bot ultra knows it all</div>' +
+    wrap.innerHTML = '<div class="mark">chatgpt-webui</div>' +
+      '<div class="sub">The quick brown fox jumps over the lazy dog...</div>' +
       '<div class="chips"></div>';
     const chips = wrap.querySelector('.chips');
     SUGGESTIONS.forEach(function(s){

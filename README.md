@@ -1,4 +1,4 @@
-# Adam Chat Bot Ultra
+# chatgpt-webui
 
 A lightweight chat UI built with Flask that sits in front of a chat backend.
 
